@@ -24,6 +24,7 @@ from nemo_rl.data.datasets.response_datasets.dapo_math import (
 from nemo_rl.data.datasets.response_datasets.deepscaler import DeepScalerDataset
 from nemo_rl.data.datasets.response_datasets.geometry3k import Geometry3KDataset
 from nemo_rl.data.datasets.response_datasets.helpsteer3 import HelpSteer3Dataset
+from nemo_rl.data.datasets.response_datasets.nemogym_dataset import NemoGymDataset
 from nemo_rl.data.datasets.response_datasets.oai_format_dataset import (
     OpenAIFormatDataset,
 )
@@ -87,6 +88,8 @@ def load_response_dataset(data_config: ResponseDatasetConfig, seed: int = 42):
             **data_config,  # pyrefly: ignore[missing-argument]  `data_path` is required for this class
             seed=seed,
         )
+    elif dataset_name == "NemoGymDataset":
+        base_dataset: Any = NemoGymDataset(**data_config)
     else:
         raise ValueError(
             f"Unsupported {dataset_name=}. "
@@ -115,4 +118,5 @@ __all__ = [
     "SquadDataset",
     "Tulu3SftMixtureDataset",
     "HelpSteer3Dataset",
+    "NemoGymDataset",
 ]
