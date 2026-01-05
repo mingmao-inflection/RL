@@ -242,9 +242,12 @@ data:
   num_prompts_per_dataloader: ${grpo.num_prompts_per_step}
   custom_dataloader: null
   train:
-    dataset_name: NemoGymDataset
-    data_path: 3rdparty/Gym-workspace/Gym/data/train.jsonl
-    repeat: 1
+    - dataset_name: NemoGymDataset
+      data_path: 3rdparty/Gym-workspace/Gym/data/train_half_00.jsonl 
+      repeat: 1
+    - dataset_name: NemoGymDataset
+      data_path: 3rdparty/Gym-workspace/Gym/data/train_half_01.jsonl 
+      repeat: 1
   validation:
     dataset_name: NemoGymDataset
     data_path: 3rdparty/Gym-workspace/Gym/data/validation.jsonl

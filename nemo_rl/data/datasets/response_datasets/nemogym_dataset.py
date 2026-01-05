@@ -24,7 +24,7 @@ class NemoGymDataset(RawDataset):
     """Simple wrapper around the Nemo Gym dataset."""
 
     def __init__(self, data_path: Optional[str] = None, **kwargs) -> None:
-        self.task_name = "NemoGymDataset"
+        self.task_name = data_path.split("/")[-1].split(".")[0]
 
         # load from jsonl
         if data_path is None:
@@ -35,7 +35,7 @@ class NemoGymDataset(RawDataset):
         self.dataset = load_dataset_from_path(data_path)
 
         # format the dataset
-        # HuggingFace Dataset 在 map/写入 Arrow 时不会持久化 torch.Tensor，会把它序列化成 Python 列表。因此下游在取样时读到的是 []（list），触发断言
+        # Hugging Face Datasets does not persist torch.Tensor during map or when writing to Arrow; it serializes them into Python lists. As a result, downstream reads see [] (a list) at sampling time, which triggers the assertion.
         self.dataset = self.dataset.map(
             self.format_data,
             with_indices=True,
