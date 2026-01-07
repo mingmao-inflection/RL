@@ -16,7 +16,7 @@
 set -euo pipefail
 
 # When we bisect, we need to ensure that the venvs are refreshed b/c the commit could
-# habe changed the uv.lock or 3rdparty submoduels, so we need to force a rebuild to be safe
+# have changed the uv.lock or 3rdparty submodules, so we need to force a rebuild to be safe
 export NRL_FORCE_REBUILD_VENVS=true
 print_usage() {
   cat <<'EOF'

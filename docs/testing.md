@@ -271,7 +271,7 @@ BAD=HEAD \
   tools.bisect/bisect-run.sh tools.bisect/launch-bisect.sh "$TEST_CASE"
 ```
 
-1) Passing extra script arguments
+2) Passing extra script arguments
 
 - If the nightly script supports Hydra/CLI overrides, pass them via `EXTRA_SCRIPT_ARGS` so each run adopts those overrides (e.g., fix a transient incompatibility):
 
@@ -286,7 +286,7 @@ BAD=HEAD \
   tools.bisect/bisect-run.sh tools.bisect/launch-bisect.sh "$TEST_CASE"
 ```
 
-1) Resuming from an earlier interrupted or misclassified session
+3) Resuming from an earlier interrupted or misclassified session
 
 - Use `BISECT_REPLAY_LOG` with the bisect driver to replay prior markings and continue running. This is handy if a run failed for an unrelated reason or you manually edited a log to change `bad` → `skip` or to drop an incorrect line.
 
