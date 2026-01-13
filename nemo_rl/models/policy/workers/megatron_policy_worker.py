@@ -113,11 +113,11 @@ from nemo_rl.models.megatron.common import (
     forward_step_arbitrary_loss,
     get_moe_metrics,
 )
+from nemo_rl.models.megatron.community_import import import_model_from_hf_name
 from nemo_rl.models.megatron.data import (
     get_microbatch_iterator,
     process_global_batch,
 )
-from nemo_rl.models.megatron.community_import import import_model_from_hf_name
 from nemo_rl.models.policy import PolicyConfig
 from nemo_rl.models.policy.interfaces import (
     ColocatablePolicyInterface,
