@@ -16,17 +16,17 @@ from dataclasses import dataclass
 from typing import Any, Iterator, Optional, Tuple
 
 import torch
-
 from megatron.core.packed_seq_params import PackedSeqParams
 from megatron.core.parallel_state import (
     get_context_parallel_rank,
     get_context_parallel_world_size,
 )
 from megatron.training.utils import get_ltor_masks_and_position_ids
-from nemo_rl.models.megatron.common import _round_up_to_multiple
+
 from nemo_rl.algorithms.interfaces import LossFunction, LossType
 from nemo_rl.distributed.batched_data_dict import BatchedDataDict
 from nemo_rl.distributed.model_utils import _get_tokens_on_this_cp_rank
+from nemo_rl.models.megatron.common import _round_up_to_multiple
 
 
 @dataclass
@@ -45,6 +45,7 @@ class ProcessedMicrobatch:
         packed_seq_params: PackedSeqParams for sequence packing (None if not packing)
         cu_seqlens_padded: Padded cumulative sequence lengths (None if not packing)
     """
+
     data_dict: BatchedDataDict[Any]
     input_ids: torch.Tensor
     input_ids_cp_sharded: torch.Tensor
@@ -192,6 +193,7 @@ def get_microbatch_iterator(
         padded_seq_length,
     )
 
+
 def process_microbatch(
     data_dict: BatchedDataDict[Any],
     seq_length_key: Optional[str] = None,
@@ -200,7 +202,7 @@ def process_microbatch(
     pad_full_seq_to: Optional[int] = None,
     pack_sequences: bool = False,
 ):
-    #with straggler_timer(bdata=True):
+    # with straggler_timer(bdata=True):
     input_ids = data_dict["input_ids"]
     attention_mask = None
     position_ids = None
@@ -217,9 +219,7 @@ def process_microbatch(
         assert seq_length_key is not None, (
             "seq_length_key must be provided for packed sequences"
         )
-        assert seq_length_key in data_dict, (
-            f"{seq_length_key} not found in data_dict"
-        )
+        assert seq_length_key in data_dict, f"{seq_length_key} not found in data_dict"
 
         # Get sequence lengths and context parallel size
         seq_lengths = data_dict[seq_length_key]
@@ -240,7 +240,7 @@ def process_microbatch(
             cp_rank=get_context_parallel_rank(),
             cp_size=get_context_parallel_world_size(),
         )
-    
+
         # For packed sequences, position_ids and attention_mask are typically None
         # The PackedSeqParams handles all necessary sequence information
         position_ids = None
@@ -264,6 +264,7 @@ def process_microbatch(
         packed_seq_params,
         cu_seqlens_padded,
     )
+
 
 def process_global_batch(
     data: BatchedDataDict[Any],
@@ -300,6 +301,7 @@ def process_global_batch(
         global_valid_seqs,
         global_valid_toks,
     )
+
 
 def _pack_sequences_for_megatron(
     input_ids: torch.Tensor,
@@ -604,6 +606,7 @@ def _unpack_sequences_from_megatron(
             unpacked_output[b, :seq_len] = output_tensor[start_idx:end_idx]
 
     return unpacked_output
+
 
 def check_sequence_dim(data: BatchedDataDict[Any]):
     # dim 1 is always assumed to be the sequence dim, sanity check this here
