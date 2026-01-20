@@ -29,6 +29,7 @@ from nemo_automodel import (
     NeMoAutoModelForSequenceClassification,
 )
 from nemo_automodel.components._peft.lora import (
+    LinearLoRA,
     PeftConfig,
     apply_lora_to_linear_modules,
 )
@@ -106,6 +107,43 @@ def _patched_init_lora_weights(self, init_method: str):
     else:
         nn.init.kaiming_uniform_(self.lora_A.weight.data, a=math.sqrt(5))
     self.lora_B.weight.data.zero_()
+
+
+@torch.no_grad()
+def _maybe_merge_lora_weight(
+    module_map: dict[str, nn.Module],
+    fqn: str,
+    tensor: torch.Tensor,
+) -> torch.Tensor:
+    if not fqn.endswith(".weight"):
+        return tensor
+    module_name = fqn[: -len(".weight")]
+    module = module_map.get(module_name)
+    if not isinstance(module, LinearLoRA):
+        return tensor
+    if not (hasattr(module, "lora_A") and hasattr(module, "lora_B")):
+        return tensor
+
+    lora_a = (
+        module.lora_A.weight.full_tensor()
+        if isinstance(module.lora_A.weight, DTensor)
+        else module.lora_A.weight
+    )
+    lora_b = (
+        module.lora_B.weight.full_tensor()
+        if isinstance(module.lora_B.weight, DTensor)
+        else module.lora_B.weight
+    )
+    lora_a = lora_a.to(device=tensor.device, dtype=tensor.dtype)
+    lora_b = lora_b.to(device=tensor.device, dtype=tensor.dtype)
+    scale = getattr(module, "scale", None)
+
+    if scale is None and hasattr(module, "alpha") and hasattr(module, "dim"):
+        scale = module.alpha / module.dim
+    if scale is None:
+        scale = 1.0
+
+    return tensor + torch.matmul(lora_b, lora_a) * scale
 
 
 @ray.remote(
@@ -1666,6 +1704,8 @@ class DTensorPolicyWorkerV2(AbstractPolicyWorker, ColocatablePolicyInterface):
         """Prepare state dict metadata for weight refitting and IPC streaming."""
         state_dict_info = {}
         for name, tensor in self.model.state_dict().items():
+            if name.endswith(".lora_A.weight") or name.endswith(".lora_B.weight"):
+                continue
             # all tensor will be casted to self.dtype in stream_weights_via_ipc_zmq/broadcast_weights_for_collective
             state_dict_info[name] = (tensor.shape, self.dtype)
 
@@ -1707,18 +1747,19 @@ class DTensorPolicyWorkerV2(AbstractPolicyWorker, ColocatablePolicyInterface):
 
         def dtensor_params_generator():
             """Generator that yields (name, tensor) pairs, converting DTensors to local tensors."""
+            module_map = dict(self.model.named_modules())
             for name, tensor in self.model.state_dict().items():
-                if isinstance(tensor, DTensor):
-                    # Convert DTensor to full tensor for streaming
-                    full_tensor = tensor.full_tensor()
-                    # Convert to target dtype
-                    yield (
-                        name,
-                        full_tensor.to(self.dtype, non_blocking=True).contiguous(),
-                    )
-                else:
-                    # Convert to target dtype
-                    yield name, tensor.to(self.dtype, non_blocking=True).contiguous()
+                if name.endswith(".lora_A.weight") or name.endswith(".lora_B.weight"):
+                    continue
+
+                full_tensor = (
+                    tensor.full_tensor() if isinstance(tensor, DTensor) else tensor
+                )
+                merged_tensor = _maybe_merge_lora_weight(module_map, name, full_tensor)
+                yield (
+                    name,
+                    merged_tensor.to(self.dtype, non_blocking=True).contiguous(),
+                )
 
         # Use the shared implementation
         stream_weights_via_ipc_zmq_impl(
